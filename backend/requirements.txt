@@ -1,0 +1,12 @@
+# NOTE: The following versions were validated on Python 3.13.7.
+# SQLAlchemy 2.0.30 and pydantic 2.7.1 crash on Python 3.13 (TypeError: __firstlineno__).
+# Updated to the lowest working versions for Python 3.13 compatibility.
+fastapi==0.111.1
+uvicorn[standard]==0.30.1
+websockets==12.0
+sqlalchemy==2.0.48
+deepgram-sdk==3.2.7
+groq==0.9.0
+python-dotenv==1.0.1
+pydantic==2.10.6
+aiofiles==23.2.1
