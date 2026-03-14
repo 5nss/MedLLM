@@ -6,14 +6,18 @@ from database import Base
 
 class Patient(Base):
     __tablename__ = "patients"
-    id         = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name       = Column(String, nullable=False)
-    dob        = Column(String, nullable=False)          # "YYYY-MM-DD"
-    mrn        = Column(String, unique=True, nullable=False)  # Medical Record Number
-    created_at = Column(DateTime, default=datetime.utcnow)
+    id                 = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name               = Column(String, nullable=False)
+    dob                = Column(String, nullable=False)          # "YYYY-MM-DD"
+    mrn                = Column(String, unique=True, nullable=False)  # Medical Record Number
+    gender             = Column(String, nullable=True)
+    phone              = Column(String, nullable=True)
+    address            = Column(String, nullable=True)
+    insurance_provider = Column(String, nullable=True)
+    created_at         = Column(DateTime, default=datetime.utcnow)
     
-    sessions   = relationship("Session", back_populates="patient")
-
+    sessions     = relationship("Session", back_populates="patient")
+    appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
 class Session(Base):
     __tablename__ = "sessions"
     id                = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -47,3 +51,15 @@ class Assessment(Base):
     updated_at            = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     session               = relationship("Session", back_populates="assessment")
+
+class Appointment(Base):
+    __tablename__ = "appointments"
+    id         = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    patient_id = Column(String, ForeignKey("patients.id"), nullable=False)
+    start_time = Column(DateTime, nullable=False)
+    end_time   = Column(DateTime, nullable=False)
+    status     = Column(Enum("scheduled", "completed", "cancelled", name="appointment_status"), default="scheduled")
+    reason     = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    patient    = relationship("Patient", back_populates="appointments")

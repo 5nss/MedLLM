@@ -20,7 +20,7 @@ DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 DEEPGRAM_WS_URL = (
     "wss://api.deepgram.com/v1/listen"
     "?model=nova-3"
-    "&language=ta"  # Changed from 'ta' to 'multi'
+    "&language=en"  # Changed from 'ta' to 'multi'
     "&smart_format=true"
     "&diarize=true"
     "&punctuate=true"

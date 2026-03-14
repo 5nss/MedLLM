@@ -63,18 +63,18 @@ export default function PatientLobby() {
           <span className="font-bold text-xl text-slate-800">MedDash Pro</span>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <a href="#" className="flex items-center gap-3 px-3 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
+          <Link href="/" className="flex items-center gap-3 px-3 py-2.5 bg-blue-50 text-blue-700 rounded-lg font-medium">
             <Users size={20} /> Patient Lobby
-          </a>
-          <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
+          </Link>
+          <Link href="/patients" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
             <FileText size={20} /> Patient Records
-          </a>
-          <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
+          </Link>
+          <Link href="/appointments" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
             <Calendar size={20} /> Appointments
-          </a>
-          <a href="#" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
+          </Link>
+          <Link href="/analytics" className="flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-colors">
             <BarChart size={20} /> Analytics
-          </a>
+          </Link>
         </nav>
       </aside>
 

@@ -31,9 +31,20 @@ def create_patient(patient: schemas.PatientCreate, db: Session = Depends(get_db)
     new_patient = models.Patient(
         name=patient.name,
         dob=patient.dob,
-        mrn=patient.mrn
+        mrn=patient.mrn,
+        gender=patient.gender,
+        phone=patient.phone,
+        address=patient.address,
+        insurance_provider=patient.insurance_provider
     )
     db.add(new_patient)
     db.commit()
     db.refresh(new_patient)
     return new_patient
+
+@router.get("/{patient_id}", response_model=schemas.PatientResponse)
+def get_patient(patient_id: str, db: Session = Depends(get_db)):
+    db_patient = db.query(models.Patient).filter(models.Patient.id == patient_id).first()
+    if not db_patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return db_patient

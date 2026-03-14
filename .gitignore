@@ -44,3 +44,8 @@ Thumbs.db
 # UI Design
 _bmad/
 _bmad-output/
+
+# Agent & Diagnostics
+.agent/
+test_soniox_auth.py
+test2.py

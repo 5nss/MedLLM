@@ -6,6 +6,10 @@ class PatientBase(BaseModel):
     name: str
     dob: str
     mrn: str
+    gender: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    insurance_provider: Optional[str] = None
 
 class PatientCreate(PatientBase):
     pass
@@ -55,4 +59,26 @@ class AssessmentCreate(AssessmentBase):
 class AssessmentResponse(AssessmentBase):
     id: str
     updated_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class AppointmentBase(BaseModel):
+    patient_id: str
+    start_time: datetime
+    end_time: datetime
+    status: Optional[str] = "scheduled"
+    reason: Optional[str] = None
+
+class AppointmentCreate(AppointmentBase):
+    pass
+
+class AppointmentUpdate(BaseModel):
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    status: Optional[str] = None
+    reason: Optional[str] = None
+
+class AppointmentResponse(AppointmentBase):
+    id: str
+    created_at: datetime
+    patient: Optional[PatientResponse] = None
     model_config = ConfigDict(from_attributes=True)

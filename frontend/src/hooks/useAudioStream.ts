@@ -9,7 +9,7 @@ export function useAudioStream(sessionId: string) {
     const streamRef = useRef<MediaStream | null>(null);
 
     // Use the env var to determine WS domain, falling back to localhost
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     const wsUrl = apiBase.replace(/^http/, "ws") + `/ws/audio/${sessionId}`;
 
     // FIX: Always connect (no conditional 3rd arg). This avoids the race condition
@@ -111,5 +111,6 @@ export function useAudioStream(sessionId: string) {
             [ReadyState.UNINSTANTIATED]: "Uninstantiated",
         }[readyState],
         lastMessage: lastJsonMessage,
+        sendJsonMessage,
     };
 }

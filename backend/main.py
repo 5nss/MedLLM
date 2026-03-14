@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 
 import models # Ensure models are loaded to create tables
-from routers import patients, sessions
+from routers import patients, sessions, appointments, analytics
 from ws import audio_handler
 
 # Create tables in the MVP SQLite database
@@ -32,6 +32,8 @@ app.add_middleware(
 
 app.include_router(patients.router)
 app.include_router(sessions.router)
+app.include_router(appointments.router)
+app.include_router(analytics.router)
 app.include_router(audio_handler.router)
 
 @app.get("/")
@@ -39,4 +41,4 @@ async def root():
     return {"status": "ok", "message": "Medical Intake App API is running."}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

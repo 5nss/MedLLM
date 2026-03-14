@@ -1,10 +1,11 @@
 import logging
 import asyncio
+import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from sqlalchemy.orm import Session
 from database import SessionLocal
 import models
-from services.deepgram_service import DeepgramLiveTranscription
+from services.soniox_service import SonioxLiveTranscription
 from services.groq_service import analyze_transcript
 
 router = APIRouter(
@@ -51,22 +52,32 @@ async def websocket_audio_endpoint(websocket: WebSocket, session_id: str):
         except Exception as e:
             logger.error(f"Error pushing transcript to WS: {e}")
 
-    dg_service = DeepgramLiveTranscription(on_transcript)
+    stt_service = SonioxLiveTranscription(on_transcript)
 
     # connect() is now a native async call
-    connected = await dg_service.connect()
-    print(f"DEBUG: Deepgram connect result: {connected}")
+    connected = await stt_service.connect()
+    print(f"DEBUG: Soniox connect result: {connected}")
     if not connected:
-        logger.error("Failed to connect to Deepgram")
-        await websocket.close(code=1011, reason="Deepgram unavailable")
+        logger.error("Failed to connect to Soniox")
+        await websocket.close(code=1011, reason="Soniox unavailable")
         db.close()
         return
 
-    # Background Assessment Loop
+    db_assessment = db.query(models.Assessment).filter(models.Assessment.session_id == session_id).first()
+    alerted_medications = set()
+    if db_assessment and db_assessment.medications_json:
+        try:
+            meds = json.loads(db_assessment.medications_json)
+            for m in meds:
+                med_name = m if isinstance(m, str) else m.get("medication", str(m))
+                alerted_medications.add(med_name.lower())
+        except Exception:
+            pass
+
     async def run_assessment_loop():
         try:
             while True:
-                await asyncio.sleep(15)
+                await asyncio.sleep(10) # Faster updates
                 full_text = await get_session_transcript(session_id, db)
                 if not full_text.strip():
                     continue
@@ -75,18 +86,37 @@ async def websocket_audio_endpoint(websocket: WebSocket, session_id: str):
 
                 assessment = db.query(models.Assessment).filter(models.Assessment.session_id == session_id).first()
                 if assessment:
-                    import json
                     if "extracted" in assessment_json:
                         meds = assessment_json["extracted"].get("medications", [])
                         assessment.medications_json = json.dumps(meds)
                         hx = assessment_json["extracted"].get("past_medical_history", [])
                         assessment.medical_history_json = json.dumps(hx)
+                        
+                        # Task 3: Emit Medication Alerts
+                        new_meds = []
+                        for m in meds:
+                            # Normalize string for comparison
+                            med_name = m if isinstance(m, str) else m.get("medication", str(m))
+                            if med_name.lower() not in alerted_medications:
+                                new_meds.append(m)
+                                alerted_medications.add(med_name.lower())
+                                
+                        if new_meds:
+                            try:
+                                await websocket.send_json({"type": "new_medications_detected", "data": new_meds})
+                            except Exception as e:
+                                logger.error(f"Failed to push new meds alert: {e}")
+
                     if "missing_questions" in assessment_json:
                         assessment.missing_questions_json = json.dumps(assessment_json["missing_questions"])
                     if "soap_summary" in assessment_json:
                         assessment.final_summary_text = json.dumps(assessment_json["soap_summary"])
+                    
+                    # Also update session status to indicate active logic is running
+                    session_model.status = "active"
                     db.commit()
                 try:
+                    logger.info(f"Broadcasting UI update for session {session_id}")
                     await websocket.send_json({"type": "ui_update", "data": assessment_json})
                 except Exception:
                     pass
@@ -97,9 +127,18 @@ async def websocket_audio_endpoint(websocket: WebSocket, session_id: str):
 
     try:
         while True:
-            audio_chunk = await websocket.receive_bytes()
-            print(f"DEBUG: Received {len(audio_chunk)} bytes — forwarding to Deepgram")
-            await dg_service.send_audio(audio_chunk)
+            message = await websocket.receive()
+            if "bytes" in message and message["bytes"]:
+                await stt_service.send_audio(message["bytes"])
+            elif "text" in message and message["text"]:
+                try:
+                    data = json.loads(message["text"])
+                    if data.get("type") == "medications_verified":
+                        verified = data.get("data", [])
+                        # We just consider them verified as they are added to our set.
+                        logger.info(f"Nurse verified meds: {verified}")
+                except Exception as e:
+                    logger.debug(f"JSON decode error from WS text: {e}")
 
     except WebSocketDisconnect:
         logger.info(f"WS disconnected: {session_id}")
@@ -107,5 +146,5 @@ async def websocket_audio_endpoint(websocket: WebSocket, session_id: str):
         logger.error(f"WS error for {session_id}: {e}")
     finally:
         assessment_task.cancel()
-        await dg_service.finish()
+        await stt_service.finish()
         db.close()
