@@ -18,6 +18,7 @@ class Patient(Base):
     
     sessions     = relationship("Session", back_populates="patient")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete-orphan")
+
 class Session(Base):
     __tablename__ = "sessions"
     id                = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
@@ -47,6 +48,7 @@ class Assessment(Base):
     medical_history_json  = Column(Text)   # JSON string
     medications_json      = Column(Text)   # JSON string
     missing_questions_json= Column(Text)   # JSON string (SAMPLE gaps)
+    speaker_roles_json    = Column(Text)   # JSON string mapping raw IDs to Nurse/Patient
     final_summary_text    = Column(Text)
     updated_at            = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

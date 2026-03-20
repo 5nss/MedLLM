@@ -5,9 +5,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ROLES_PROMPT = """
+Analyze this short initial snippet of a medical intake conversation and determine which speaker ID represents the Nurse/Provider (the one asking medical questions) and which represents the Patient (the one describing symptoms).
+
+Return ONLY a valid JSON object mapping the raw speaker IDs to their roles. No markdown fences.
+
+Example:
+{"1": "Patient", "2": "Nurse"}
+"""
+
 SYSTEM_PROMPT = """
 You are a clinical AI assistant embedded in a medical intake system.
 Your job is to analyze a nurse-patient conversation transcript and return a structured JSON object.
+
+The speakers have been identified as follows: {roles_str}
 
 You MUST check whether the following SAMPLE protocol questions have been addressed.
 SAMPLE stands for:
@@ -46,7 +57,27 @@ Output format:
 }
 """
 
-async def analyze_transcript(transcript_text: str) -> dict:
+async def analyze_roles(transcript_text: str) -> dict:
+    if not transcript_text.strip():
+        return {}
+        
+    client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
+    try:
+        completion = await client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": ROLES_PROMPT},
+                {"role": "user", "content": f"Transcript:\n{transcript_text}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        response_text = completion.choices[0].message.content
+        return json.loads(response_text)
+    except Exception as e:
+        print(f"Failed to parse Groq roles response: {e}")
+        return {}
+
+async def analyze_transcript(transcript_text: str, roles: dict = None) -> dict:
     if not transcript_text.strip():
         # Return empty structure if no transcript yet
         return {
@@ -60,21 +91,25 @@ async def analyze_transcript(transcript_text: str) -> dict:
           }
         }
     
-    # Instantiate client here so it attaches to Uvicorn's asyncio loop
+    roles_str = json.dumps(roles) if roles else "Unknown roles"
+    formatted_prompt = SYSTEM_PROMPT.format(roles_str=roles_str)
+    
     client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
-    
-    completion = await client.chat.completions.create(
-        model="llama3-70b-8192",  # Recommended for fast reasoning and JSON parsing
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"Here is the transcript so far:\n\n{transcript_text}"}
-        ],
-        response_format={"type": "json_object"}
-    )
-    
-    response_text = completion.choices[0].message.content
     try:
+        completion = await client.chat.completions.create(
+            model="moonshotai/kimi-k2-instruct-0905",
+            messages=[
+                {"role": "system", "content": formatted_prompt},
+                {"role": "user", "content": f"Here is the transcript so far:\n\n{transcript_text}"}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        response_text = completion.choices[0].message.content
         return json.loads(response_text)
     except json.JSONDecodeError:
         print("Failed to parse Groq response as JSON:", response_text)
+        return {}
+    except Exception as e:
+        print(f"Error calling Groq: {e}")
         return {}
