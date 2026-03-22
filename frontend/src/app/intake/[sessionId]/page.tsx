@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     Mic,
@@ -22,6 +23,7 @@ import { MedicationVerificationModal } from "@/components/session/MedicationVeri
 import { api } from "@/lib/api";
 
 export default function LiveIntake({ params }: { params: { sessionId: string } }) {
+    const router = useRouter();
     const { isRecording, startRecording, stopRecording, connectionStatus, lastMessage, sendJsonMessage } = useAudioStream(params.sessionId);
 
     // State for session and patient
@@ -78,6 +80,16 @@ export default function LiveIntake({ params }: { params: { sessionId: string } }
         }
     }, [lastMessage]);
 
+    const handleSaveAssessment = async () => {
+        try {
+            await api.updateSessionStatus(params.sessionId, "completed");
+            router.push("/");
+        } catch (e) {
+            console.error("Failed to save assessment", e);
+            alert("Failed to save assessment!");
+        }
+    };
+
     return (
         <div className="flex flex-col h-screen bg-slate-50 overflow-hidden">
             {/* Top Navigation */}
@@ -116,7 +128,7 @@ export default function LiveIntake({ params }: { params: { sessionId: string } }
                             <Mic size={20} /> Start Recording
                         </button>
                     )}
-                    <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm transition-all shadow-blue-200 hover:shadow-md">
+                    <button onClick={handleSaveAssessment} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium shadow-sm transition-all shadow-blue-200 hover:shadow-md">
                         <Save size={20} /> Save Assessment
                     </button>
                 </div>

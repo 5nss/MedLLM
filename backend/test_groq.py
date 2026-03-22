@@ -30,6 +30,8 @@ async def test_llm():
         print("Assessment result keys:", assessment.keys())
         print("Extracted medications:", assessment.get("extracted", {}).get("medications"))
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         print(f"Error in analyze_transcript: {e}")
 
 if __name__ == "__main__":

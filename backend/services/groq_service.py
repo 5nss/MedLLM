@@ -72,6 +72,10 @@ async def analyze_roles(transcript_text: str) -> dict:
             response_format={"type": "json_object"}
         )
         response_text = completion.choices[0].message.content
+        start = response_text.find('{')
+        end = response_text.rfind('}')
+        if start != -1 and end != -1 and end >= start:
+            response_text = response_text[start:end+1]
         return json.loads(response_text)
     except Exception as e:
         print(f"Failed to parse Groq roles response: {e}")
@@ -92,12 +96,12 @@ async def analyze_transcript(transcript_text: str, roles: dict = None) -> dict:
         }
     
     roles_str = json.dumps(roles) if roles else "Unknown roles"
-    formatted_prompt = SYSTEM_PROMPT.format(roles_str=roles_str)
+    formatted_prompt = SYSTEM_PROMPT.replace("{roles_str}", roles_str)
     
     client = AsyncGroq(api_key=os.getenv("GROQ_API_KEY"))
     try:
         completion = await client.chat.completions.create(
-            model="moonshotai/kimi-k2-instruct-0905",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {"role": "system", "content": formatted_prompt},
                 {"role": "user", "content": f"Here is the transcript so far:\n\n{transcript_text}"}
@@ -106,6 +110,10 @@ async def analyze_transcript(transcript_text: str, roles: dict = None) -> dict:
         )
         
         response_text = completion.choices[0].message.content
+        start = response_text.find('{')
+        end = response_text.rfind('}')
+        if start != -1 and end != -1 and end >= start:
+            response_text = response_text[start:end+1]
         return json.loads(response_text)
     except json.JSONDecodeError:
         print("Failed to parse Groq response as JSON:", response_text)

@@ -49,6 +49,16 @@ export const api = {
         return res.json();
     },
 
+    updateSessionStatus: async (id: string, status: "active" | "review" | "completed") => {
+        const res = await fetch(`${API_URL}/api/sessions/${id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ status })
+        });
+        if (!res.ok) throw new Error("Failed to update session status");
+        return res.json();
+    },
+
     // Appointments
     getAppointments: async () => {
         const res = await fetch(`${API_URL}/api/appointments`, { cache: "no-store" });
